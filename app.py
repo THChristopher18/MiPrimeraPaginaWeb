@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from flask import Flask, render_template, jsonify, redirect, abort
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -22,6 +23,21 @@ def obtener_servicio_drive():
     except Exception as e:
         print("Error conectando a Drive:", e)
         return None
+
+def clave_ordenamiento(item):
+    nombre = item.get('name', '')
+    is_folder = item.get('mimeType') == 'application/vnd.google-apps.folder'
+    
+    # Las carpetas van primero (0), los archivos después (1)
+    tipo_peso = 0 if is_folder else 1
+    
+    # Buscar si tiene número de semana para ordenarlas de forma numérica (1, 2, 3... 16)
+    match = re.search(r'sem(?:ana)?\s*(\d+)', nombre, re.IGNORECASE)
+    if match:
+        return (tipo_peso, 0, int(match.group(1)), nombre.lower())
+    
+    # Si no es semana, orden alfabético normal
+    return (tipo_peso, 1, 0, nombre.lower())
 
 @app.route('/')
 def home():
@@ -60,21 +76,25 @@ def obtener_contenido_ruta(subpath):
             folder_actual_id = folders_sub[0]['id']
             ruta_actual_acumulada += f"/{parte}"
 
-        # Pedimos webContentLink para enlaces directos y ordenamos por nombre
+        # Obtener elementos de la carpeta actual
         query_items = f"'{folder_actual_id}' in parents and trashed = false"
-        res_items = service.files().list(q=query_items, pageSize=100, fields="files(id, name, webContentLink, webViewLink, mimeType)").execute()
+        res_items = service.files().list(q=query_items, pageSize=100, fields="files(id, name, mimeType)").execute()
         items = res_items.get('files', [])
 
-        # Ordenar carpetas primero y luego por nombre de forma alfabética/natural
-        items = sorted(items, key=lambda x: (x.get('mimeType') != 'application/vnd.google-apps.folder', x.get('name')))
+        # Ordenar inteligentemente (Carpetas primero, semanas ordenadas del 1 al 16)
+        items = sorted(items, key=clave_ordenamiento)
 
         elementos = []
         for item in items:
             is_folder = item.get('mimeType') == 'application/vnd.google-apps.folder'
             nombre = item.get('name')
+            file_id = item.get('id')
             
-            # Si es archivo, intentamos darle un enlace directo para que abra limpio
-            link = item.get('webContentLink') or item.get('webViewLink', '#')
+            # Generamos el enlace optimizado: si es archivo, abre directo en el visor nativo de PDF del navegador sin la interfaz de Drive
+            if is_folder:
+                link = "#"
+            else:
+                link = f"https://drive.google.com/uc?export=view&id={file_id}"
             
             elementos.append({
                 "nombre": nombre,
