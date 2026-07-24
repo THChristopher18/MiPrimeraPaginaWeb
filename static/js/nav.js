@@ -1,49 +1,4 @@
-let cicloActual = "";
-let historialRutas = []; 
-let indiceHistorial = -1; 
-
-function seleccionarCiclo(numeroCiclo) {
-    cicloActual = numeroCiclo;
-    historialRutas = [`Ciclo ${numeroCiclo}`]; 
-    indiceHistorial = 0; 
-    
-    const tabBar = document.getElementById('tab-bar');
-    tabBar.innerHTML = `<div class="tab">HOME</div><div class="tab active">Ciclo ${numeroCiclo}</div>`;
-    
-    renderizarCarpetaActual();
-}
-
-function renderizarCarpetaActual() {
-    const subpath = historialRutas[indiceHistorial];
-    
-    let partes = subpath.split('/');
-    let tituloTexto = partes.join(' / ');
-    document.getElementById('semana-title').innerText = tituloTexto;
-
-    const btnAnterior = document.getElementById('btn-anterior');
-    const btnSiguiente = document.getElementById('btn-siguiente');
-
-    if (indiceHistorial <= 0) {
-        btnAnterior.style.opacity = "0.4";
-        btnAnterior.style.cursor = "not-allowed";
-        btnAnterior.disabled = true;
-    } else {
-        btnAnterior.style.opacity = "1";
-        btnAnterior.style.cursor = "pointer";
-        btnAnterior.disabled = false;
-    }
-
-    if (indiceHistorial >= historialRutas.length - 1) {
-        btnSiguiente.style.opacity = "0.4";
-        btnSiguiente.style.cursor = "not-allowed";
-        btnSiguiente.disabled = true;
-    } else {
-        btnSiguiente.style.opacity = "1";
-        btnSiguiente.style.cursor = "pointer";
-        btnSiguiente.disabled = false;
-    }
-
-    fetch(`/api/contenido/${subpath}`)
+fetch(`/api/contenido/${subpath}`)
         .then(response => response.json())
         .then(data => {
             let contenidoHtml = `<ul style="list-style: none; padding: 0; margin: 0;">`;
@@ -61,8 +16,8 @@ function renderizarCarpetaActual() {
                                 <span style="font-size: 18px;">📄</span> 
                                 <span style="margin-left: 12px; text-align: left;">${item.nombre}</span>
                             </div>
-                            <a href="/download/${item.ruta_relativa}" target="_blank" title="Descargar archivo" style="background: #f1f3f4; color: #333; padding: 8px 12px; border-radius: 50%; text-decoration: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                ⬇️
+                            <a href="${item.url}" target="_blank" title="Abrir archivo" style="background: #f1f3f4; color: #333; padding: 8px 12px; border-radius: 8px; text-decoration: none; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                                Ver ↗
                             </a>
                         </li>`;
                     }
@@ -74,21 +29,3 @@ function renderizarCarpetaActual() {
             document.getElementById('file-list').innerHTML = contenidoHtml;
         })
         .catch(error => console.error("Error al cargar el contenido:", error));
-}
-
-function entrarCarpeta(rutaRelativa) {
-    historialRutas = historialRutas.slice(0, indiceHistorial + 1);
-    historialRutas.push(rutaRelativa);
-    indiceHistorial++;
-    renderizarCarpetaActual();
-}
-
-function cambiarSemana(direccion) {
-    if (direccion === -1 && indiceHistorial > 0) {
-        indiceHistorial--;
-        renderizarCarpetaActual();
-    } else if (direccion === 1 && indiceHistorial < historialRutas.length - 1) {
-        indiceHistorial++;
-        renderizarCarpetaActual();
-    }
-}
