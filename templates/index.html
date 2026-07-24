@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>THCNodes - Repositorio</title>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Izquierdo -->
+        <aside class="sidebar">
+            <h1>THCNodes</h1>
+            <h3>Ingeniería de Sistemas</h3>
+            <a href="/" class="btn-home">🏠 HOME</a>
+            
+            <div class="ciclos-menu">
+                <p style="font-size: 12px; color: #95a5a6; margin: 5px 0;">CICLOS</p>
+                {% for i in range(1, 11) %}
+                    <!-- Botón que llama a la función para cargar archivos en la misma página -->
+                    <button onclick="seleccionarCiclo('{{ i }}')" style="width: 100%; cursor: pointer; margin-bottom: 5px;">Ciclo {{ i }}</button>
+                {% endfor %}
+            </div>
+        </aside>
+
+        <!-- Contenido Central -->
+        <main class="main-content">
+            <header class="tab-bar" id="tab-bar">
+                <div class="tab active">HOME</div>
+            </header>
+
+            <div class="content-area">
+                <div class="nav-arrows">
+                    <button id="btn-anterior" onclick="cambiarSemana(-1)" disabled style="opacity: 0.4; cursor: not-allowed;">&larr; Anterior</button>
+                    <h2 id="semana-title" style="margin: 0;">Bienvenido a tu Repositorio</h2>
+                    <button id="btn-siguiente" onclick="cambiarSemana(1)" disabled style="opacity: 0.4; cursor: not-allowed;">Siguiente &rarr;</button>
+                </div>
+                
+                <!-- Visor central donde aparecerán los archivos -->
+                <div id="file-list" class="drive-view" style="padding: 20px;">
+                    <p style="color: #666;">Selecciona un ciclo en la barra izquierda para ver tus documentos aquí mismo.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script para consultar los archivos de Flask y pintarlos en pantalla -->
+    <script>
+        function seleccionarCiclo(ciclo) {
+            document.getElementById('semana-title').innerText = "Ciclo " + ciclo;
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = "<p style='color: #3498db;'>Cargando archivos desde la nube...</p>";
+
+            fetch(`/api/ciclo/${ciclo}`)
+                .then(response => response.json())
+                .then(data => {
+                    let html = "<ul style='list-style: none; padding: 0;'>";
+                    data.forEach(archivo => {
+                        html += `<li style='padding: 12px; margin-bottom: 8px; background: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px;'>📁 <strong>${archivo.nombre}</strong></li>`;
+                    });
+                    html += "</ul>";
+                    fileList.innerHTML = html;
+                })
+                .catch(error => {
+                    fileList.innerHTML = "<p style='color: red;'>Error al cargar los archivos.</p>";
+                });
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
+</body>
+</html>
