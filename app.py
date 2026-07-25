@@ -70,6 +70,12 @@ def upload_file():
     else:
         flash('Formato no permitido. Solo se aceptan PDF, DOCX o PPTX.')
         return redirect(url_for('index'))
+    
+# --- RUTA API PARA EL CONTENIDO DE LOS CICLOS ---
+@app.route('/api/contenido/<ciclo>')
+def obtener_contenido(ciclo):
+    # Aquí puedes retornar un JSON de prueba temporalmente para que cargue la interfaz
+    return {"mensaje": f"Contenido oficial correspondiente al {ciclo}"}
 
 if __name__ == '__main__':
     app.run(debug=True)
