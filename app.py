@@ -1,143 +1,75 @@
 import os
-import json
-import re
-import sqlite3
-from flask import Flask, render_template, jsonify
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
-PARENT_FOLDER_ID = '1KBMMPc0q35ea-sl75v644WyaydWqrJrg'
-DB_NAME = 'cache_drive.db'
+# --- CONFIGURACIÓN DE SEGURIDAD Y LÍMITES ---
+app.config['SECRET_KEY'] = 'tu_clave_secreta_super_segura' # Cambia esto por algo seguro luego
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['UPLOAD_FOLDER'] = 'uploads'
 
-def inicializar_db():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS cache (
-            subpath TEXT PRIMARY KEY,
-            elementos TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+# ¡Aquí está el límite de 5 MB que elegiste! (5 * 1024 * 1024 bytes)
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 
 
-inicializar_db()
+# Extensiones permitidas para los archivos de la universidad
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'pptx'}
 
-def obtener_servicio_drive():
-    try:
-        google_creds_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
-        if google_creds_json:
-            creds_info = json.loads(google_creds_json)
-            creds = service_account.Credentials.from_service_account_info(creds_info, scopes=SCOPES)
-        else:
-            creds = service_account.Credentials.from_service_account_file(
-                'credentials.json', scopes=SCOPES)
-        return build('drive', 'v3', credentials=creds)
-    except Exception as e:
-        print("Error conectando a Drive:", e)
-        return None
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def clave_ordenamiento(item):
-    nombre = item.get('name', '')
-    is_folder = item.get('mimeType') == 'application/vnd.google-apps.folder'
-    tipo_peso = 0 if is_folder else 1
-    
-    match = re.search(r'sem(?:ana)?\s*(\d+)', nombre, re.IGNORECASE)
-    if match:
-        return (tipo_peso, 0, int(match.group(1)), nombre.lower())
-    return (tipo_peso, 1, 0, nombre.lower())
+# Asegurar que exista la carpeta uploads
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# --- MODELO DE USUARIO (Base de datos) ---
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Crear la base de datos automáticamente al iniciar
+with app.app_context():
+    db.create_all()
+
+# --- RUTAS DE LA APLICACIÓN ---
 @app.route('/')
-def home():
+def index():
     return render_template('index.html')
 
-@app.route('/api/contenido/<path:subpath>')
-def obtener_contenido_ruta(subpath):
-    subpath = subpath.strip()
+# Ruta para subir archivos con validación de peso y formato
+@app.route('/upload', methods=['POST'])
+@login_required
+def upload_file():
+    if 'file' not in request.files:
+        flash('No se seleccionó ningún archivo')
+        return redirect(url_for('index'))
     
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('SELECT elementos FROM cache WHERE subpath = ?', (subpath,))
-    resultado = cursor.fetchone()
-    conn.close()
+    file = request.files['file']
     
-    if resultado:
-        return jsonify({"elementos": json.loads(resultado[0])})
-
-    service = obtener_servicio_drive()
-    if not service:
-        return jsonify({"elementos": []})
-
-    try:
-        partes = [p.strip() for p in subpath.split('/') if p.strip()]
-        if not partes:
-            return jsonify({"elementos": []})
-
-        ciclo_nombre = partes[0]
-        query_ciclo = f"'{PARENT_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder' and name contains '{ciclo_nombre}' and trashed = false"
-        res_ciclo = service.files().list(q=query_ciclo, pageSize=1, fields="files(id, name)").execute()
-        folders_ciclo = res_ciclo.get('files', [])
-
-        if not folders_ciclo:
-            return jsonify({"elementos": []})
-
-        folder_actual_id = folders_ciclo[0]['id']
-        ruta_actual_acumulada = ciclo_nombre
-
-        for parte in partes[1:]:
-            query_sub = f"'{folder_actual_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and name = '{parte}' and trashed = false"
-            res_sub = service.files().list(q=query_sub, pageSize=1, fields="files(id, name)").execute()
-            folders_sub = res_sub.get('files', [])
-            
-            if not folders_sub:
-                return jsonify({"elementos": []})
-            
-            folder_actual_id = folders_sub[0]['id']
-            ruta_actual_acumulada += f"/{parte}"
-
-        query_items = f"'{folder_actual_id}' in parents and trashed = false"
-        res_items = service.files().list(q=query_items, pageSize=100, fields="files(id, name, mimeType)").execute()
-        items = res_items.get('files', [])
-
-        items = sorted(items, key=clave_ordenamiento)
-
-        elementos = []
-        for item in items:
-            is_folder = item.get('mimeType') == 'application/vnd.google-apps.folder'
-            nombre = item.get('name')
-            file_id = item.get('id')
-            
-            if is_folder:
-                url_ver = "#"
-                url_descargar = "#"
-            else:
-                # URL para previsualizar dentro de la página (Modal)
-                url_ver = f"https://drive.google.com/file/d/{file_id}/preview"
-                # URL para descargar directamente si el usuario lo desea
-                url_descargar = f"https://drive.google.com/uc?export=download&id={file_id}"
-            
-            elementos.append({
-                "nombre": nombre,
-                "es_carpeta": is_folder,
-                "ruta_relativa": f"{ruta_actual_acumulada}/{nombre}",
-                "url_ver": url_ver,
-                "url_descargar": url_descargar
-            })
-
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute('INSERT OR REPLACE INTO cache (subpath, elementos) VALUES (?, ?)', (subpath, json.dumps(elementos)))
-        conn.commit()
-        conn.close()
-
-        return jsonify({"elementos": elementos})
-
-    except Exception as e:
-        print("Error al listar contenido:", e)
-        return jsonify({"elementos": []})
+    if file.filename == '':
+        flash('Nombre de archivo vacío')
+        return redirect(url_for('index'))
+        
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        flash('¡Archivo subido con éxito y dentro del límite permitido!')
+        return redirect(url_for('index'))
+    else:
+        flash('Formato no permitido. Solo se aceptan PDF, DOCX o PPTX.')
+        return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=True)
