@@ -411,38 +411,6 @@
             word-break: break-word;
         }
 
-        /* Estilo para las carpetas inyectadas por nav.js */
-        .file-item {
-            background: var(--bg-body);
-            border: 1px solid var(--card-border);
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .file-item span {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-main);
-        }
-
-        .file-item a {
-            background: #2563eb;
-            color: white;
-            text-decoration: none;
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .file-item a:hover {
-            background: #1d4ed8;
-        }
-
         /* DISEÑO RESPONSIVO PARA CELULARES */
         @media (max-width: 768px) {
             body {
@@ -564,16 +532,20 @@
                 </div>
             </div>
 
-            <!-- CONTENEDOR DE CICLOS Y CARPETAS (AQUÍ ESTABA EL ERROR) -->
+            <!-- CONTENEDOR DE CICLOS Y CARPETAS -->
             <div class="card-box" id="ciclo-view" style="display: none;">
-                <!-- Devolvemos la barra de navegación de semanas que borré por error -->
+                
+                <!-- AQUÍ ESTÁ LA SOLUCIÓN: El tab-bar que buscaba tu nav.js -->
+                <div id="tab-bar" style="display: flex; gap: 10px; margin-bottom: 20px; font-size: 14px; font-weight: 600; color: #64748b;">
+                    <!-- nav.js inyectará los tabs aquí -->
+                </div>
+
                 <div class="header-nav-bar">
                     <button class="nav-action-btn" id="btn-anterior" onclick="cambiarSemana(-1)">← Anterior</button>
                     <span id="semana-title">Cursos y Archivos</span>
                     <button class="nav-action-btn" id="btn-siguiente" onclick="cambiarSemana(1)">Siguiente →</button>
                 </div>
 
-                <!-- Devolvemos el ID exacto donde tu nav.js mete las carpetas -->
                 <div id="file-list">
                     <p style="color: var(--text-muted); text-align: center; padding: 40px;">Cargando contenido...</p>
                 </div>
