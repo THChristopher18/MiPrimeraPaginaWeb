@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>THCNodes</title>
+    <!-- Logo en la pestaña del navegador (Favicon) -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <style>
         * {
             box-sizing: border-box;
@@ -28,6 +30,7 @@
             display: flex;
             flex-direction: column;
             border-right: 1px solid #334155;
+            flex-shrink: 0;
         }
 
         .logo-container {
@@ -36,6 +39,14 @@
             gap: 12px;
             padding: 20px 15px;
             border-bottom: 1px solid #334155;
+        }
+
+        /* Estilo para la imagen del logo en el menú */
+        .logo-img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            border-radius: 6px;
         }
 
         .logo-container h2 {
@@ -115,6 +126,8 @@
             background: white;
             border-bottom: 1px solid #e2e8f0;
             padding: 0 20px;
+            overflow-x: auto;
+            white-space: nowrap;
         }
 
         .tab {
@@ -156,6 +169,7 @@
             padding: 15px;
             border-radius: 10px;
             border: 1px solid #e2e8f0;
+            gap: 10px;
         }
 
         .nav-action-btn {
@@ -168,6 +182,7 @@
             font-weight: 600;
             font-size: 14px;
             transition: background 0.2s;
+            white-space: nowrap;
         }
 
         .nav-action-btn:hover {
@@ -175,17 +190,61 @@
         }
 
         #semana-title {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             color: #1e293b;
             text-align: center;
             flex: 1;
-            padding: 0 15px;
+            word-break: break-word;
         }
 
         #file-list {
             background: white;
             border-radius: 8px;
+        }
+
+        /* DISEÑO RESPONSIVO PARA CELULARES */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                height: 100vh;
+                overflow: auto;
+            }
+
+            aside {
+                width: 100%;
+                height: 220px;
+                border-right: none;
+                border-bottom: 1px solid #334155;
+            }
+
+            main {
+                height: auto;
+                overflow: visible;
+            }
+
+            .content-container {
+                padding: 15px;
+                overflow-y: visible;
+            }
+
+            .card-box {
+                padding: 12px;
+            }
+
+            .header-nav-bar {
+                flex-direction: row;
+                padding: 10px;
+            }
+
+            .nav-action-btn {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+
+            #semana-title {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
@@ -194,7 +253,8 @@
     <!-- Sidebar Izquierdo -->
     <aside>
         <div class="logo-container">
-            <span style="font-size: 26px;">🎓</span>
+            <!-- Aquí reemplazamos el emoji por tu imagen de logo.png -->
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
             <h2>THCNodes</h2>
         </div>
         <div class="sidebar-subtitle">Ingeniería de Sistemas</div>
