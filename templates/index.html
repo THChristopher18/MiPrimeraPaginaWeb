@@ -177,7 +177,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* Sección inferior del sidebar con el botón de tema (Yin-Yang) */
+        /* Pie de Sidebar con Botón de Cambio de Tema (Yin-Yang) */
         .sidebar-footer {
             padding: 15px 20px;
             border-top: 1px solid var(--sidebar-border);
@@ -216,17 +216,19 @@
             background-color: var(--bg-main);
         }
 
-        /* Barra superior con buscador integrado */
+        /* Barra superior con buscador y autocompletado tipo YouTube */
         .top-bar {
             padding: 20px 40px 0 40px;
             display: flex;
             justify-content: flex-end;
             align-items: center;
+            position: relative;
+            z-index: 100;
         }
 
         .search-box {
             position: relative;
-            width: 320px;
+            width: 350px;
         }
 
         .search-box input {
@@ -245,13 +247,50 @@
             border-color: #2563eb;
         }
 
-        .search-box span {
+        .search-box span.search-icon {
             position: absolute;
             left: 12px;
             top: 50%;
             transform: translateY(-50%);
             font-size: 15px;
             color: var(--text-muted);
+        }
+
+        /* Sugerencias flotantes (Autocompletado) */
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            margin-top: 5px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+            max-height: 250px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+        }
+
+        .suggestion-item {
+            padding: 10px 15px;
+            font-size: 13px;
+            color: var(--text-main);
+            cursor: pointer;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background-color: rgba(37, 99, 235, 0.1);
+            color: #2563eb;
         }
 
         .content-container {
@@ -270,7 +309,7 @@
             margin: 0 auto;
         }
 
-        /* ESTILOS PARA EL HOME PROFESIONAL */
+        /* ESTILOS PARA EL HOME */
         .home-hero {
             background: linear-gradient(135deg, #0f172a, #1e293b);
             color: white;
@@ -372,6 +411,38 @@
             word-break: break-word;
         }
 
+        /* Estilo para las carpetas / archivos del ciclo */
+        .file-item {
+            background: var(--bg-body);
+            border: 1px solid var(--card-border);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item span {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .file-item a {
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .file-item a:hover {
+            background: #1d4ed8;
+        }
+
         /* DISEÑO RESPONSIVO PARA CELULARES */
         @media (max-width: 768px) {
             body {
@@ -449,7 +520,7 @@
             <!-- Se generan dinámicamente -->
         </div>
 
-        <!-- Pie de Sidebar con Botón de Cambio de Color (Yin-Yang) -->
+        <!-- Pie de Sidebar con Botón de Cambio de Tema (Yin-Yang) -->
         <div class="sidebar-footer">
             <button class="theme-toggle-btn" onclick="toggleTheme()">
                 <span id="theme-icon">☯️</span> <span id="theme-text">Modo Oscuro</span>
@@ -459,11 +530,12 @@
 
     <!-- Panel Principal -->
     <main>
-        <!-- Barra superior con el Buscador de Archivos/Ciclos -->
+        <!-- Barra superior con el Buscador y Sugerencias de Autocompletado tipo YouTube -->
         <div class="top-bar">
             <div class="search-box">
-                <span>🔍</span>
-                <input type="text" id="global-search" placeholder="Buscar ciclos, cursos o archivos..." onkeyup="filtrarContenido()">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="global-search" placeholder="Buscar ciclos, cursos o archivos..." onkeyup="mostrarSugerencias()" autocomplete="off">
+                <div class="search-suggestions" id="suggestions-box"></div>
             </div>
         </div>
 
@@ -507,7 +579,7 @@
         </div>
     </main>
 
-    <!-- Script de Navegación -->
+    <!-- Script de Navegación del Sistema -->
     <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
     <script>
         // Control del menú hamburguesa en celulares
@@ -550,20 +622,62 @@
             }
         });
 
-        // Buscador interactivo en tiempo real para la lista de ciclos
-        function filtrarContenido() {
-            let filtro = document.getElementById('global-search').value.toLowerCase();
-            let botonesCiclos = document.querySelectorAll('.ciclo-btn');
+        // Base de datos simulada o extracto para sugerencias del buscador tipo YouTube
+        const elementosBusqueda = [
+            { tipo: 'Ciclo', nombre: 'Ciclo 1', accion: () => activarCiclo(1) },
+            { tipo: 'Ciclo', nombre: 'Ciclo 2', accion: () => activarCiclo(2) },
+            { tipo: 'Ciclo', nombre: 'Ciclo 3', accion: () => activarCiclo(3) },
+            { tipo: 'Ciclo', nombre: 'Ciclo 4', accion: () => activarCiclo(4) },
+            { tipo: 'Ciclo', nombre: 'Ciclo 5', accion: () => activarCiclo(5) },
+            { tipo: 'Ciclo', nombre: 'Ciclo 6', accion: () => activarCiclo(6) },
+            { tipo: 'Ciclo', nombre: 'Ciclo 7', accion: () => activarCiclo(7) },
+            { tipo: 'Ciclo', nombre: 'Ciclo 8', accion: () => activarCiclo(8) },
+            { tipo: 'Ciclo', nombre: 'Ciclo 9', accion: () => activarCiclo(9) },
+            { tipo: 'Ciclo', nombre: 'Ciclo 10', accion: () => activarCiclo(10) },
+            { tipo: 'Archivo', nombre: 'Silabo_Ing_Sistemas.pdf', accion: () => irHome() },
+            { tipo: 'Archivo', nombre: 'Diapositivas_Semana1.pptx', accion: () => irHome() }
+        ];
 
-            botonesCiclos.forEach(btn => {
-                let texto = btn.innerText.toLowerCase();
-                if (texto.includes(filtro)) {
-                    btn.style.display = 'block';
-                } else {
-                    btn.style.display = 'none';
-                }
+        // Autocompletado y sugerencias flotantes en tiempo real
+        function mostrarSugerencias() {
+            let inputVal = document.getElementById('global-search').value.toLowerCase().trim();
+            let box = document.getElementById('suggestions-box');
+            box.innerHTML = '';
+
+            if (inputVal === '') {
+                box.style.display = 'none';
+                return;
+            }
+
+            let filtrados = elementosBusqueda.filter(item => item.nombre.toLowerCase().includes(inputVal));
+
+            if (filtrados.length === 0) {
+                box.innerHTML = '<div class="suggestion-item" style="color: var(--text-muted);">No se encontraron resultados</div>';
+                box.style.display = 'block';
+                return;
+            }
+
+            filtrados.forEach(item => {
+                let div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerHTML = `<span>🔍</span> <strong>${item.nombre}</strong> <span style="margin-left: auto; font-size: 11px; color: var(--text-muted);">[${item.tipo}]</span>`;
+                div.onclick = () => {
+                    document.getElementById('global-search').value = item.nombre;
+                    box.style.display = 'none';
+                    item.accion();
+                };
+                box.appendChild(div);
             });
+
+            box.style.display = 'block';
         }
+
+        // Ocultar sugerencias si se hace clic fuera
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-box')) {
+                document.getElementById('suggestions-box').style.display = 'none';
+            }
+        });
 
         // Función para limpiar estados activos del menú
         function limpiarActivos() {
@@ -572,7 +686,7 @@
             botonesCiclos.forEach(b => b.classList.remove('active'));
         }
 
-        // Función para volver al Home visualmente de forma limpia
+        // Función para volver al Home visualmente
         function irHome() {
             limpiarActivos();
             document.getElementById('btn-home-sidebar').classList.add('active');
@@ -581,21 +695,25 @@
             document.getElementById('app-sidebar').classList.remove('open');
         }
 
-        // Generar lista de ciclos dinámicamente
+        // Activar ciclo específico desde buscador o menú
+        function activarCiclo(i) {
+            limpiarActivos();
+            let btn = document.getElementById(`btn-ciclo-${i}`);
+            if (btn) btn.classList.add('active');
+            seleccionarCiclo(i); // Conecta con la función original de nav.js para cargar carpetas/archivos
+            document.getElementById('home-view').style.display = 'none';
+            document.getElementById('ciclo-view').style.display = 'block';
+            document.getElementById('app-sidebar').classList.remove('open');
+        }
+
+        // Generar lista de ciclos dinámicamente en el sidebar
         const ciclosList = document.getElementById('ciclos-list');
         for (let i = 1; i <= 10; i++) {
             let btn = document.createElement('button');
             btn.className = 'ciclo-btn';
             btn.id = `btn-ciclo-${i}`;
             btn.innerText = `Ciclo ${i}`;
-            btn.onclick = () => {
-                limpiarActivos();
-                btn.classList.add('active');
-                seleccionarCiclo(i);
-                document.getElementById('home-view').style.display = 'none';
-                document.getElementById('ciclo-view').style.display = 'block';
-                document.getElementById('app-sidebar').classList.remove('open');
-            };
+            btn.onclick = () => activarCiclo(i);
             ciclosList.appendChild(btn);
         }
     </script>
