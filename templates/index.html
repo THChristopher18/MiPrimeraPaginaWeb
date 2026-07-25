@@ -33,20 +33,15 @@
         .logo-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             padding: 20px 15px;
             border-bottom: 1px solid #334155;
-        }
-
-        .logo-container img {
-            width: 35px;
-            height: 35px;
-            object-fit: contain;
         }
 
         .logo-container h2 {
             font-size: 20px;
             color: white;
+            margin: 0;
         }
 
         .sidebar-subtitle {
@@ -199,7 +194,7 @@
     <!-- Sidebar Izquierdo -->
     <aside>
         <div class="logo-container">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+            <span style="font-size: 26px;">🎓</span>
             <h2>THCNodes</h2>
         </div>
         <div class="sidebar-subtitle">Ingeniería de Sistemas</div>
@@ -238,7 +233,6 @@
     <!-- Script de Navegación -->
     <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
     <script>
-        // Generar dinámicamente los botones de los ciclos del 1 al 10
         const ciclosList = document.getElementById('ciclos-list');
         for (let i = 1; i <= 10; i++) {
             let btn = document.createElement('button');
