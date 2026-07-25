@@ -177,7 +177,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* Pie de Sidebar con Botón de Cambio de Tema (Yin-Yang) */
+        /* Pie de Sidebar con Botón de Cambio de Tema */
         .sidebar-footer {
             padding: 15px 20px;
             border-top: 1px solid var(--sidebar-border);
@@ -216,7 +216,7 @@
             background-color: var(--bg-main);
         }
 
-        /* Barra superior con buscador y autocompletado tipo YouTube */
+        /* Barra superior con buscador */
         .top-bar {
             padding: 20px 40px 0 40px;
             display: flex;
@@ -373,9 +373,74 @@
             color: var(--text-muted);
         }
 
-        /* Contenedor interno donde nav.js inyecta los cursos y carpetas */
-        #ciclo-view {
-            display: none;
+        .header-nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: var(--bg-body);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            gap: 15px;
+        }
+
+        .nav-action-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-action-btn:hover {
+            background: #1d4ed8;
+        }
+
+        #semana-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-main);
+            text-align: center;
+            flex: 1;
+            word-break: break-word;
+        }
+
+        /* Estilo para las carpetas inyectadas por nav.js */
+        .file-item {
+            background: var(--bg-body);
+            border: 1px solid var(--card-border);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item span {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .file-item a {
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .file-item a:hover {
+            background: #1d4ed8;
         }
 
         /* DISEÑO RESPONSIVO PARA CELULARES */
@@ -455,7 +520,7 @@
             <!-- Se generan dinámicamente -->
         </div>
 
-        <!-- Pie de Sidebar con Botón de Cambio de Tema (Yin-Yang) -->
+        <!-- Pie de Sidebar -->
         <div class="sidebar-footer">
             <button class="theme-toggle-btn" onclick="toggleTheme()">
                 <span id="theme-icon">☯️</span> <span id="theme-text">Modo Oscuro</span>
@@ -465,7 +530,7 @@
 
     <!-- Panel Principal -->
     <main>
-        <!-- Barra superior con el Buscador y Sugerencias de Autocompletado tipo YouTube -->
+        <!-- Barra superior con el Buscador -->
         <div class="top-bar">
             <div class="search-box">
                 <span class="search-icon">🔍</span>
@@ -499,23 +564,31 @@
                 </div>
             </div>
 
-            <!-- CONTENEDOR DE CICLOS Y CARPETAS -->
-            <div class="card-box" id="ciclo-view">
-                <!-- Aquí nav.js renderiza todo el contenido estructurado (cursos, carpetas y semanas) de forma nativa -->
+            <!-- CONTENEDOR DE CICLOS Y CARPETAS (AQUÍ ESTABA EL ERROR) -->
+            <div class="card-box" id="ciclo-view" style="display: none;">
+                <!-- Devolvemos la barra de navegación de semanas que borré por error -->
+                <div class="header-nav-bar">
+                    <button class="nav-action-btn" id="btn-anterior" onclick="cambiarSemana(-1)">← Anterior</button>
+                    <span id="semana-title">Cursos y Archivos</span>
+                    <button class="nav-action-btn" id="btn-siguiente" onclick="cambiarSemana(1)">Siguiente →</button>
+                </div>
+
+                <!-- Devolvemos el ID exacto donde tu nav.js mete las carpetas -->
+                <div id="file-list">
+                    <p style="color: var(--text-muted); text-align: center; padding: 40px;">Cargando contenido...</p>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Script de Navegación del Sistema (Maneja la lógica original de carpetas y Google Drive) -->
+    <!-- Script de Navegación del Sistema -->
     <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
     <script>
-        // Control del menú hamburguesa en celulares
         function toggleMenu() {
             const sidebar = document.getElementById('app-sidebar');
             sidebar.classList.toggle('open');
         }
 
-        // Sistema de Cambio de Tema (Claro / Oscuro con Yin-Yang)
         function toggleTheme() {
             const body = document.body;
             const themeIcon = document.getElementById('theme-icon');
@@ -534,7 +607,6 @@
             }
         }
 
-        // Cargar preferencia guardada de color al iniciar
         window.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('thc_theme') || 'light';
             document.body.setAttribute('data-theme', savedTheme);
@@ -549,7 +621,6 @@
             }
         });
 
-        // Elementos de búsqueda con sugerencias directas
         const elementosBusqueda = [
             { tipo: 'Ciclo', nombre: 'Ciclo 1', accion: () => activarCiclo(1) },
             { tipo: 'Ciclo', nombre: 'Ciclo 2', accion: () => activarCiclo(2) },
@@ -563,7 +634,6 @@
             { tipo: 'Ciclo', nombre: 'Ciclo 10', accion: () => activarCiclo(10) }
         ];
 
-        // Autocompletado y sugerencias flotantes en tiempo real
         function mostrarSugerencias() {
             let inputVal = document.getElementById('global-search').value.toLowerCase().trim();
             let box = document.getElementById('suggestions-box');
@@ -597,21 +667,18 @@
             box.style.display = 'block';
         }
 
-        // Ocultar sugerencias si se hace clic fuera
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.search-box')) {
                 document.getElementById('suggestions-box').style.display = 'none';
             }
         });
 
-        // Función para limpiar estados activos del menú
         function limpiarActivos() {
             document.getElementById('btn-home-sidebar').classList.remove('active');
             const botonesCiclos = document.querySelectorAll('.ciclo-btn');
             botonesCiclos.forEach(b => b.classList.remove('active'));
         }
 
-        // Función para volver al Home visualmente
         function irHome() {
             limpiarActivos();
             document.getElementById('btn-home-sidebar').classList.add('active');
@@ -620,17 +687,14 @@
             document.getElementById('app-sidebar').classList.remove('open');
         }
 
-        // Activar ciclo y dejar que nav.js pinte las carpetas de los cursos correctamente
         function activarCiclo(i) {
             limpiarActivos();
             let btn = document.getElementById(`btn-ciclo-${i}`);
             if (btn) btn.classList.add('active');
             
-            // Ocultar el Home y mostrar el contenedor donde nav.js inyecta la estructura
             document.getElementById('home-view').style.display = 'none';
             document.getElementById('ciclo-view').style.display = 'block';
             
-            // Disparar la función original que lee las carpetas y cursos de nav.js
             if (typeof seleccionarCiclo === 'function') {
                 seleccionarCiclo(i);
             }
@@ -638,7 +702,6 @@
             document.getElementById('app-sidebar').classList.remove('open');
         }
 
-        // Generar lista de ciclos dinámicamente en el sidebar
         const ciclosList = document.getElementById('ciclos-list');
         for (let i = 1; i <= 10; i++) {
             let btn = document.createElement('button');
