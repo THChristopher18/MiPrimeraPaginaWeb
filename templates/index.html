@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>THCNodes</title>
-    <!-- Logo en la pestaña del navegador (Favicon) -->
+    <!-- Logo en la pestaña del navegador -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <style>
         * {
@@ -22,6 +22,21 @@
             overflow: hidden;
         }
 
+        /* Botón de menú hamburguesa (oculto en PC) */
+        .menu-toggle {
+            display: none;
+            background: #1e293b;
+            color: white;
+            border: none;
+            font-size: 22px;
+            padding: 10px 15px;
+            cursor: pointer;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            z-index: 1000;
+        }
+
         /* Sidebar izquierdo */
         aside {
             width: 260px;
@@ -31,6 +46,7 @@
             flex-direction: column;
             border-right: 1px solid #334155;
             flex-shrink: 0;
+            transition: transform 0.3s ease;
         }
 
         .logo-container {
@@ -41,7 +57,6 @@
             border-bottom: 1px solid #334155;
         }
 
-        /* Estilo para la imagen del logo en el menú */
         .logo-img {
             width: 36px;
             height: 36px;
@@ -136,6 +151,7 @@
             font-weight: 600;
             color: #64748b;
             border-bottom: 3px solid transparent;
+            cursor: pointer;
         }
 
         .tab.active {
@@ -143,7 +159,7 @@
             border-bottom-color: #3b82f6;
         }
 
-        /* Contenedor central de la carpeta */
+        /* Contenedor central */
         .content-container {
             flex: 1;
             padding: 30px;
@@ -155,9 +171,69 @@
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             border: 1px solid #e2e8f0;
-            padding: 20px;
+            padding: 25px;
             max-width: 950px;
             margin: 0 auto;
+        }
+
+        /* ESTILOS PARA EL HOME DINÁMICO */
+        .home-hero {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .home-hero h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .home-hero p {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .home-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .home-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .home-card h3 {
+            font-size: 16px;
+            color: #1e293b;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .recent-downloads-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .recent-downloads-list li {
+            background: white;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #475569;
         }
 
         .header-nav-bar {
@@ -198,12 +274,7 @@
             word-break: break-word;
         }
 
-        #file-list {
-            background: white;
-            border-radius: 8px;
-        }
-
-        /* DISEÑO RESPONSIVO PARA CELULARES */
+        /* DISEÑO RESPONSIVO PARA CELULARES (Menú Oculto con 3 rayas) */
         @media (max-width: 768px) {
             body {
                 flex-direction: column;
@@ -211,11 +282,26 @@
                 overflow: auto;
             }
 
+            .menu-toggle {
+                display: flex;
+            }
+
             aside {
+                position: absolute;
+                top: 50px;
+                left: 0;
                 width: 100%;
-                height: 220px;
-                border-right: none;
-                border-bottom: 1px solid #334155;
+                height: calc(100vh - 50px);
+                z-index: 999;
+                transform: translateX(-100%); /* Oculto por defecto fuera de la pantalla */
+            }
+
+            aside.open {
+                transform: translateX(0); /* Se muestra al hacer click en las 3 rayas */
+            }
+
+            .home-grid {
+                grid-template-columns: 1fr;
             }
 
             main {
@@ -225,41 +311,30 @@
 
             .content-container {
                 padding: 15px;
-                overflow-y: visible;
             }
 
             .card-box {
-                padding: 12px;
-            }
-
-            .header-nav-bar {
-                flex-direction: row;
-                padding: 10px;
-            }
-
-            .nav-action-btn {
-                padding: 8px 10px;
-                font-size: 12px;
-            }
-
-            #semana-title {
-                font-size: 14px;
+                padding: 15px;
             }
         }
     </style>
 </head>
 <body>
 
+    <!-- Botón de Menú Hamburguesa para Celulares -->
+    <button class="menu-toggle" onclick="toggleMenu()">
+        <span>☰</span> <strong>THCNodes</strong> - Menú
+    </button>
+
     <!-- Sidebar Izquierdo -->
-    <aside>
+    <aside id="app-sidebar">
         <div class="logo-container">
-            <!-- Aquí reemplazamos el emoji por tu imagen de logo.png -->
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
             <h2>THCNodes</h2>
         </div>
         <div class="sidebar-subtitle">Ingeniería de Sistemas</div>
         
-        <div class="nav-home" onclick="location.reload()">
+        <div class="nav-home" onclick="irHome()">
             <span>🏠</span> HOME
         </div>
 
@@ -272,19 +347,44 @@
     <!-- Panel Principal -->
     <main>
         <div class="tab-bar" id="tab-bar">
-            <div class="tab active">HOME</div>
+            <div class="tab active" onclick="irHome()">HOME</div>
         </div>
 
-        <div class="content-container">
-            <div class="card-box">
+        <div class="content-container" id="main-content-area">
+            <!-- VISTA HOME DINÁMICA -->
+            <div class="card-box" id="home-view">
+                <div class="home-hero">
+                    <h1>¡Hola, bienvenido de nuevo! 👋</h1>
+                    <p>Tu plataforma centralizada de Ingeniería de Sistemas para organizar ciclos, apuntes y recursos.</p>
+                </div>
+
+                <div class="home-grid">
+                    <div class="home-card">
+                        <h3>⚡ Accesos Rápidos</h3>
+                        <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Selecciona un ciclo en el menú lateral para ver el contenido de tus clases y semanas.</p>
+                        <button class="nav-action-btn" onclick="toggleMenu()" style="width: 100%;">Explorar Ciclos 🎓</button>
+                    </div>
+
+                    <div class="home-card">
+                        <h3>📥 Últimas Descargas / Actividad</h3>
+                        <ul class="recent-downloads-list" id="recent-list">
+                            <li><span>📄 Silabo_Ing_Sistemas.pdf</span> <span style="color: #3b82f6; font-weight: 600;">Ciclo Actual</span></li>
+                            <li><span>📊 Diapositivas_Semana1.pptx</span> <span style="color: #64748b;">Reciente</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR DE CICLOS (Oculto por defecto hasta que elijan uno) -->
+            <div class="card-box" id="ciclo-view" style="display: none;">
                 <div class="header-nav-bar">
                     <button class="nav-action-btn" id="btn-anterior" onclick="cambiarSemana(-1)">← Anterior</button>
-                    <span id="semana-title">Selecciona un ciclo a la izquierda</span>
+                    <span id="semana-title">Selecciona una semana</span>
                     <button class="nav-action-btn" id="btn-siguiente" onclick="cambiarSemana(1)">Siguiente →</button>
                 </div>
 
                 <div id="file-list">
-                    <p style="color: #64748b; text-align: center; padding: 40px;">Por favor, selecciona un ciclo en el menú de la izquierda para comenzar.</p>
+                    <p style="color: #64748b; text-align: center; padding: 40px;">Cargando contenido...</p>
                 </div>
             </div>
         </div>
@@ -293,12 +393,32 @@
     <!-- Script de Navegación -->
     <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
     <script>
+        // Control del menú hamburguesa en celulares
+        function toggleMenu() {
+            const sidebar = document.getElementById('app-sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Función para volver al Home visualmente
+        function irHome() {
+            document.getElementById('home-view').style.display = 'block';
+            document.getElementById('ciclo-view').style.display = 'none';
+            // Cerrar menú en celular si está abierto
+            document.getElementById('app-sidebar').classList.remove('open');
+        }
+
+        // Generar lista de ciclos dinámicamente
         const ciclosList = document.getElementById('ciclos-list');
         for (let i = 1; i <= 10; i++) {
             let btn = document.createElement('button');
             btn.className = 'ciclo-btn';
             btn.innerText = `Ciclo ${i}`;
-            btn.onclick = () => seleccionarCiclo(i);
+            btn.onclick = () => {
+                seleccionarCiclo(i);
+                document.getElementById('home-view').style.display = 'none';
+                document.getElementById('ciclo-view').style.display = 'block';
+                document.getElementById('app-sidebar').classList.remove('open'); // Cierra menú en móvil al hacer click
+            };
             ciclosList.appendChild(btn);
         }
     </script>
