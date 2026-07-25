@@ -1,7 +1,8 @@
 import os
 import json
 import re
-from flask import Flask, render_template, jsonify, redirect, abort
+import sqlite3
+from flask import Flask, render_template, jsonify
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
@@ -9,6 +10,21 @@ app = Flask(__name__)
 
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 PARENT_FOLDER_ID = '1KBMMPc0q35ea-sl75v644WyaydWqrJrg'
+DB_NAME = 'cache_drive.db'
+
+def inicializar_db():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS cache (
+            subpath TEXT PRIMARY KEY,
+            elementos TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+inicializar_db()
 
 def obtener_servicio_drive():
     try:
@@ -27,16 +43,11 @@ def obtener_servicio_drive():
 def clave_ordenamiento(item):
     nombre = item.get('name', '')
     is_folder = item.get('mimeType') == 'application/vnd.google-apps.folder'
-    
-    # Las carpetas van primero (0), los archivos después (1)
     tipo_peso = 0 if is_folder else 1
     
-    # Buscar si tiene número de semana para ordenarlas de forma numérica (1, 2, 3... 16)
     match = re.search(r'sem(?:ana)?\s*(\d+)', nombre, re.IGNORECASE)
     if match:
         return (tipo_peso, 0, int(match.group(1)), nombre.lower())
-    
-    # Si no es semana, orden alfabético normal
     return (tipo_peso, 1, 0, nombre.lower())
 
 @app.route('/')
@@ -45,6 +56,17 @@ def home():
 
 @app.route('/api/contenido/<path:subpath>')
 def obtener_contenido_ruta(subpath):
+    subpath = subpath.strip()
+    
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('SELECT elementos FROM cache WHERE subpath = ?', (subpath,))
+    resultado = cursor.fetchone()
+    conn.close()
+    
+    if resultado:
+        return jsonify({"elementos": json.loads(resultado[0])})
+
     service = obtener_servicio_drive()
     if not service:
         return jsonify({"elementos": []})
@@ -76,12 +98,10 @@ def obtener_contenido_ruta(subpath):
             folder_actual_id = folders_sub[0]['id']
             ruta_actual_acumulada += f"/{parte}"
 
-        # Obtener elementos de la carpeta actual
         query_items = f"'{folder_actual_id}' in parents and trashed = false"
         res_items = service.files().list(q=query_items, pageSize=100, fields="files(id, name, mimeType)").execute()
         items = res_items.get('files', [])
 
-        # Ordenar inteligentemente (Carpetas primero, semanas ordenadas del 1 al 16)
         items = sorted(items, key=clave_ordenamiento)
 
         elementos = []
@@ -90,18 +110,28 @@ def obtener_contenido_ruta(subpath):
             nombre = item.get('name')
             file_id = item.get('id')
             
-            # Generamos el enlace optimizado: si es archivo, abre directo en el visor nativo de PDF del navegador sin la interfaz de Drive
             if is_folder:
-                link = "#"
+                url_ver = "#"
+                url_descargar = "#"
             else:
-                link = f"https://drive.google.com/uc?export=view&id={file_id}"
+                # URL para previsualizar dentro de la página (Modal)
+                url_ver = f"https://drive.google.com/file/d/{file_id}/preview"
+                # URL para descargar directamente si el usuario lo desea
+                url_descargar = f"https://drive.google.com/uc?export=download&id={file_id}"
             
             elementos.append({
                 "nombre": nombre,
                 "es_carpeta": is_folder,
                 "ruta_relativa": f"{ruta_actual_acumulada}/{nombre}",
-                "url": link
+                "url_ver": url_ver,
+                "url_descargar": url_descargar
             })
+
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute('INSERT OR REPLACE INTO cache (subpath, elementos) VALUES (?, ?)', (subpath, json.dumps(elementos)))
+        conn.commit()
+        conn.close()
 
         return jsonify({"elementos": elementos})
 

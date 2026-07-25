@@ -61,9 +61,14 @@ function renderizarCarpetaActual() {
                                 <span style="font-size: 18px;">📄</span> 
                                 <span style="margin-left: 12px; text-align: left;">${item.nombre}</span>
                             </div>
-                            <a href="${item.url}" target="_blank" title="Abrir archivo" style="background: #f1f3f4; color: #333; padding: 8px 12px; border-radius: 8px; text-decoration: none; display: flex; align-items: center; justify-content: center; font-size: 14px;">
-                                Ver ↗
-                            </a>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="verPdf('${item.url_ver}', '${item.nombre}')" style="background: #0056b3; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                                    Ver 👁
+                                </button>
+                                <a href="${item.url_descargar}" target="_blank" title="Descargar archivo" style="background: #f1f3f4; color: #333; padding: 8px 12px; border-radius: 8px; text-decoration: none; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500;">
+                                    Descargar ⬇
+                                </a>
+                            </div>
                         </li>`;
                     }
                 });
@@ -90,5 +95,36 @@ function cambiarSemana(direccion) {
     } else if (direccion === 1 && indiceHistorial < historialRutas.length - 1) {
         indiceHistorial++;
         renderizarCarpetaActual();
+    }
+}
+
+// Función para abrir el PDF en una ventana flotante (Modal estilo Blackboard)
+function verPdf(url, nombre) {
+    let modal = document.getElementById('pdf-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'pdf-modal';
+        modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000;";
+        modal.innerHTML = `
+            <div style="background: white; width: 85%; height: 85%; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+                <div style="background: #1e293b; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 id="modal-title" style="margin: 0; font-size: 16px;">Visualizador</h3>
+                    <button onclick="cerrarModal()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
+                </div>
+                <iframe id="modal-iframe" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    document.getElementById('modal-title').innerText = nombre;
+    document.getElementById('modal-iframe').src = url;
+    modal.style.display = 'flex';
+}
+
+function cerrarModal() {
+    let modal = document.getElementById('pdf-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.getElementById('modal-iframe').src = "";
     }
 }
