@@ -502,7 +502,7 @@
         <div class="top-bar">
             <div class="search-box">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="global-search" placeholder="Buscar ciclos, cursos o archivos..." onkeyup="mostrarSugerencias()" autocomplete="off">
+                <input type="text" id="global-search" placeholder="Buscar ciclos, cursos o archivos aquí..." onkeyup="mostrarSugerencias()" autocomplete="off">
                 <div class="search-suggestions" id="suggestions-box"></div>
             </div>
         </div>
@@ -535,7 +535,7 @@
             <!-- CONTENEDOR DE CICLOS Y CARPETAS -->
             <div class="card-box" id="ciclo-view" style="display: none;">
                 
-                <!-- AQUÍ ESTÁ LA SOLUCIÓN: El tab-bar que buscaba tu nav.js -->
+                <!-- AQUÍ ESTÁ EL TAB-BAR NECESARIO PARA NAV.JS -->
                 <div id="tab-bar" style="display: flex; gap: 10px; margin-bottom: 20px; font-size: 14px; font-weight: 600; color: #64748b;">
                     <!-- nav.js inyectará los tabs aquí -->
                 </div>
@@ -593,6 +593,9 @@
             }
         });
 
+        // --------------------------------------------------------
+        // SISTEMA DE BÚSQUEDA INTEGRADO (Ciclos + Vista Actual)
+        // --------------------------------------------------------
         const elementosBusqueda = [
             { tipo: 'Ciclo', nombre: 'Ciclo 1', accion: () => activarCiclo(1) },
             { tipo: 'Ciclo', nombre: 'Ciclo 2', accion: () => activarCiclo(2) },
@@ -606,45 +609,95 @@
             { tipo: 'Ciclo', nombre: 'Ciclo 10', accion: () => activarCiclo(10) }
         ];
 
+        const inputBusqueda = document.getElementById('global-search');
+        
+        // Listener para la tecla ENTER
+        inputBusqueda.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+                let termino = this.value.toLowerCase().trim();
+                filtrarVistaActual(termino);
+                document.getElementById('suggestions-box').style.display = 'none';
+            }
+        });
+
         function mostrarSugerencias() {
-            let inputVal = document.getElementById('global-search').value.toLowerCase().trim();
+            let inputVal = inputBusqueda.value.toLowerCase().trim();
             let box = document.getElementById('suggestions-box');
             box.innerHTML = '';
 
             if (inputVal === '') {
                 box.style.display = 'none';
+                filtrarVistaActual(''); // Restaura todos los archivos si borras el texto
                 return;
             }
 
-            let filtrados = elementosBusqueda.filter(item => item.nombre.toLowerCase().includes(inputVal));
+            // Buscar en los ciclos (Navegación principal)
+            let sugerencias = elementosBusqueda.filter(item => item.nombre.toLowerCase().includes(inputVal));
 
-            if (filtrados.length === 0) {
+            // Buscar en los Archivos/Carpetas de la pantalla actual
+            let listaArchivos = document.querySelectorAll('#file-list li');
+            listaArchivos.forEach(li => {
+                let textoElemento = li.innerText.toLowerCase();
+                if (textoElemento.includes(inputVal) && !textoElemento.includes('esta carpeta está vacía')) {
+                    
+                    let esCarpeta = li.innerHTML.includes('📁');
+                    let nombreLimpio = textoElemento.split('\n')[0].replace('📄', '').replace('📁', '').trim();
+
+                    // Evitar duplicados
+                    if (!sugerencias.some(s => s.nombre.toLowerCase() === nombreLimpio)) {
+                        sugerencias.push({
+                            tipo: esCarpeta ? 'Carpeta/Semana' : 'Documento',
+                            nombre: nombreLimpio,
+                            accion: () => {
+                                inputBusqueda.value = nombreLimpio;
+                                box.style.display = 'none';
+                                filtrarVistaActual(nombreLimpio.toLowerCase());
+                            }
+                        });
+                    }
+                }
+            });
+
+            if (sugerencias.length === 0) {
                 box.innerHTML = '<div class="suggestion-item" style="color: var(--text-muted);">No se encontraron resultados</div>';
                 box.style.display = 'block';
                 return;
             }
 
-            filtrados.forEach(item => {
+            sugerencias.forEach(item => {
                 let div = document.createElement('div');
                 div.className = 'suggestion-item';
                 div.innerHTML = `<span>🔍</span> <strong>${item.nombre}</strong> <span style="margin-left: auto; font-size: 11px; color: var(--text-muted);">[${item.tipo}]</span>`;
-                div.onclick = () => {
-                    document.getElementById('global-search').value = item.nombre;
-                    box.style.display = 'none';
-                    item.accion();
-                };
+                div.onclick = item.accion;
                 box.appendChild(div);
             });
 
             box.style.display = 'block';
         }
 
+        function filtrarVistaActual(termino) {
+            let listaArchivos = document.querySelectorAll('#file-list li');
+            listaArchivos.forEach(li => {
+                let texto = li.innerText.toLowerCase();
+                if (texto.includes(termino)) {
+                    li.style.display = 'flex';
+                } else {
+                    li.style.display = 'none';
+                }
+            });
+        }
+
+        // Ocultar sugerencias si se hace clic fuera del buscador
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.search-box')) {
                 document.getElementById('suggestions-box').style.display = 'none';
             }
         });
 
+        // --------------------------------------------------------
+        // NAVEGACIÓN Y MENÚS
+        // --------------------------------------------------------
         function limpiarActivos() {
             document.getElementById('btn-home-sidebar').classList.remove('active');
             const botonesCiclos = document.querySelectorAll('.ciclo-btn');
